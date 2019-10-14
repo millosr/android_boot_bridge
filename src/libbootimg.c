@@ -360,22 +360,20 @@ void libbootimg_get_elf_version(struct boot_img_elf_info *hdr_info)
     }
     else
     {
-        switch (hdr_info->hdr.phnum)
+        if (hdr_info->hdr.phnum == 3 && hdr_info->hdr.shnum > 0)
         {
-            case 3:
-                // Version 2 (found in Z2, 8960) has 3 program headers + 1 section header
-                hdr_info->elf_version = VER_ELF_2;
-                // Also the bootloader does not load modified elf images
-                // Output to standard Android container format
-                hdr_info->elf_out_format = OUT_AND;
-                break;
-            case 4:
-            case 5:
-            default:
-                // Version 1 (found in SP, 8960) has 4 program headers
-                hdr_info->elf_version = VER_ELF_1;
-                hdr_info->elf_out_format = OUT_ELF;
-                break;
+            // Version 2 (found in Z2, 8960) has 3 program headers + 1 section header
+            hdr_info->elf_version = VER_ELF_2;
+            // Also the bootloader does not load modified elf images
+            // Output to standard Android container format
+            hdr_info->elf_out_format = OUT_AND;
+        }
+        else
+        {
+            // Version 1 (found in SP, 8960) has 4 program headers
+            // (also found in S, 8660), has 3 program headers
+            hdr_info->elf_version = VER_ELF_1;
+            hdr_info->elf_out_format = OUT_ELF;
         }
     }
 }
@@ -1147,7 +1145,7 @@ int libbootimg_write_img_fileptr(struct bootimg *b, FILE *f)
 
     if (b->is_elf && b->hdr_info->elf_out_format == OUT_ELF)
     {
-        if (b->hdr_info->elf_version == VER_ELF_1)
+        if (b->hdr_info->elf_version == VER_ELF_1 && b->hdr_info->cmdline_size > 0)
         {
             // Write the cmdline (last part ref by the prog header)
             pos_end += b->hdr_info->cmdline_size;
