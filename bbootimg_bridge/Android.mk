@@ -2,8 +2,6 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES += \
-    $(multirom_local_path) \
-    $(multirom_local_path)/lib \
     system/extras/libbootimg/include \
 
 LOCAL_SRC_FILES:= \
@@ -17,6 +15,6 @@ LOCAL_UNSTRIPPED_PATH := $(TARGET_ROOT_OUT_UNSTRIPPED)
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 
 LOCAL_CFLAGS := -DDEBUG_KMSG
-LOCAL_STATIC_LIBRARIES := libc libmultirom_static libbootimg libcutils
+LOCAL_STATIC_LIBRARIES := libc libbootimg libcutils
 
 include $(BUILD_EXECUTABLE)

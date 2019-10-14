@@ -20,9 +20,39 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include <../../multirom/lib/util.h>
-
 #include <libbootimg.h>
+
+int copy_file(const char *from, const char *to)
+{
+    FILE *in = fopen(from, "re");
+    if(!in)
+        return -1;
+
+    FILE *out = fopen(to, "we");
+    if(!out)
+    {
+        fclose(in);
+        return -1;
+    }
+
+    fseek(in, 0, SEEK_END);
+    int size = ftell(in);
+    rewind(in);
+
+    char *buff = malloc(size);
+    fread(buff, 1, size, in);
+    fwrite(buff, 1, size, out);
+
+    fclose(in);
+    fclose(out);
+    free(buff);
+    return 0;
+}
+
+int strstartswith(const char *haystack, const char *needle)
+{
+    return strncmp(haystack, needle, strlen(needle)) == 0;
+}
 
 int bbootimg_bridge(const char* import_path, const char* export_path)
 {
