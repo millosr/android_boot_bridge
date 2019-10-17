@@ -13,6 +13,7 @@
 #define ACT_EXTRACT 1
 #define ACT_UPDATE  2
 #define ACT_CREATE  3
+#define ACT_EXTRACT_RAMDISK 4
 
 static const char *default_fname_cfg = "bootimg.cfg";
 static const char *default_fname_blobs[] = {
@@ -60,6 +61,10 @@ static void print_help(const char *prog_name)
     "    - ramdisk image (initrd.img)\n"
     "    - second stage image (stage2.img)\n"
     "\n"
+    "%s -xr <bootimg> [<ramdisk>]\n"
+    "    extract ramdisk from boot image:\n"
+    "    - ramdisk image (initrd.img)\n"
+    "\n"
     "%s -u <bootimg> [-c \"param=value\"] [-f <bootimg.cfg>] [-k <kernel>] [-r <ramdisk>] [-s <secondstage>] [-d <dtb> ] [-m]\n"
     "    update current boot image with objects given in command line\n"
     "    - header informations given in arguments (several can be provided)\n"
@@ -84,7 +89,7 @@ static void print_help(const char *prog_name)
     "    tagsaddr = 0x1234                   - atags address\n"
     "    name = string without quotes        - name of the image, max 16 characters\n"
     "    cmdline = string without quotes     - cmdline, max 512 characters\n"
-    ,libbootimg_version_str(), prog_name, prog_name, prog_name, prog_name, prog_name, prog_name);
+    ,libbootimg_version_str(), prog_name, prog_name, prog_name, prog_name, prog_name, prog_name, prog_name);
 }
 
 
@@ -416,6 +421,43 @@ static int extract_bootimg(struct bbootimg_info *i)
     return 0;
 }
 
+static int extract_ramdisk(struct bbootimg_info *i)
+{
+    int x;
+    int res;
+    struct bootimg_blob *blob;
+
+    res = libbootimg_init_load(&i->img, i->fname_img, LIBBOOTIMG_LOAD_ALL);
+    if(res < 0)
+    {
+        fprintf(stderr, "Failed to load boot image (%s)!\n", libbootimg_error_str(res));
+        return -res;
+    }
+
+    if((i->img_size = get_bootimg_size(i->fname_img)) < 0)
+        return -1;
+
+    x = LIBBOOTIMG_BLOB_RAMDISK;
+    blob = &i->img.blobs[LIBBOOTIMG_BLOB_RAMDISK];
+
+    if(*blob->size == 0)
+    {
+        fprintf(stderr, "Ramdisk is empty!\n");
+        return -1;
+    }
+
+    printf("extracting %s in %s\n", blob_names[x], i->fname_blobs[x]);
+    res = libbootimg_dump_blob(blob, i->fname_blobs[x]);
+    if(res < 0)
+    {
+        fprintf(stderr, "Failed to extract %s (%s)!\n", blob_names[x], libbootimg_error_str(res));
+        return res;
+    }
+
+    libbootimg_destroy(&i->img);
+    return 0;
+}
+
 static int copy_file(FILE *in, const char *dst)
 {
 #define CPY_BUFF_SIZE (512*1024)
@@ -518,6 +560,8 @@ static int execute_action(struct bbootimg_info *i)
     {
         case ACT_EXTRACT:
             return extract_bootimg(i);
+        case ACT_EXTRACT_RAMDISK:
+            return extract_ramdisk(i);
         case ACT_UPDATE:
             return update_bootimg(i);
         case ACT_CREATE:
@@ -576,6 +620,18 @@ int main(int argc, const char *argv[])
 
             for(blob_itr = 0; ++i < argc && blob_itr < LIBBOOTIMG_BLOB_CNT; ++blob_itr)
                 info.fname_blobs[blob_itr] = argv[i];
+
+            break;
+        }
+        else if(strcmp("-xr", argv[i]) == 0)
+        {
+            load_default_filenames(&info);
+
+            info.act = ACT_EXTRACT_RAMDISK;
+            info.fname_img = argv[++i];
+
+            if(++i < argc)
+                info.fname_blobs[LIBBOOTIMG_BLOB_RAMDISK] = argv[i];
 
             break;
         }
