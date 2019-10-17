@@ -1,0 +1,30 @@
+ui_print(" ");
+ui_print(" ");
+ui_print(" =================================");
+ui_print(" |   Bootimage Bridge Restore    |");
+ui_print(" |         for Sony ELF          |");
+ui_print(" |       Adrian DC - 2016        |");
+ui_print(" =================================");
+ui_print(" ");
+ui_print(" Usage:");
+ui_print("  - Flash BootBridge-Init.zip");
+ui_print("  - Flash target zip");
+ui_print("  - Flash BootBridge-Restore.zip");
+ui_print(" ");
+ui_print(" Restoring the boot bridge:");
+
+show_progress(1.000000, 0);
+
+ui_print("  - Restoring the original boot...");
+assert(run_program("/tmp/boot_bridge/boot_bridge.sh") == 0);
+
+set_progress(0.500000);
+ui_print("  - Cleaning temporary files...");
+delete_recursive("/tmp/boot_bridge");
+
+ui_print(" ");
+ui_print(" Restore completed!");
+ui_print(" ");
+
+set_progress(1.000000);
+

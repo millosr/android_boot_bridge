@@ -1,0 +1,41 @@
+ui_print(" ");
+ui_print(" ");
+ui_print(" =================================");
+ui_print(" |     Bootimage Bridge Init     |");
+ui_print(" |         for Sony ELF          |");
+ui_print(" |       Adrian DC - 2016        |");
+ui_print(" =================================");
+ui_print(" ");
+ui_print(" Usage:");
+ui_print("  - Flash BootBridge-Init.zip");
+ui_print("  - Flash target zip");
+ui_print("  - Flash BootBridge-Restore.zip");
+ui_print(" ");
+ui_print("  - If anything goes wrong restore original boot");
+ui_print("    by flashing /tmp/boot_original.img");
+ui_print(" ");
+ui_print(" Initializing the boot bridge:");
+
+show_progress(1.000000, 0);
+
+ui_print("  - Extracting script files...");
+delete_recursive("/tmp/boot_bridge");
+package_extract_dir("scripts", "/tmp/boot_bridge/");
+set_perm(0, 0, 0755, "/tmp/boot_bridge/bbootimg");
+set_perm(0, 0, 0755, "/tmp/boot_bridge/boot_bridge.sh");
+
+set_progress(0.500000);
+ui_print("  - Preparing the boot bridge...");
+assert(run_program("/tmp/boot_bridge/boot_bridge.sh", "init") == 0);
+
+ui_print(" ");
+ui_print(" Initialization completed!");
+ui_print(" ");
+ui_print(" You can flash target zip now!");
+ui_print(" ");
+ui_print(" Don't forget to flash BootBridge-Restore");
+ui_print(" after target zip!");
+ui_print(" ");
+
+set_progress(1.000000);
+
