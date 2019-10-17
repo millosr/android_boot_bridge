@@ -6,7 +6,6 @@
 # Variables
 BOOTIMAGE_ORIGINAL=;
 BOOTIMAGE_PATH=;
-BRIDGE_CREATED=;
 RESULT=${2};
 
 # Bootimage detection based on the find_boot_image logic by Chainfire
@@ -44,20 +43,16 @@ if [ -z "${BOOTIMAGE_PATH}" ] || [ -z "${BOOTIMAGE_ORIGINAL}" ]; then
   return 1;
 fi;
 
-# Bridge mode detection
-if [ ! "${1}" = 'init' ] && [ -f "${BOOTIMAGE_ORIGINAL}" ]; then
-  BRIDGE_CREATED=true;
-fi;
-
 # Path setup
 cd /tmp/;
 
 # Bridge creation
-if [ -z "${BRIDGE_CREATED}" ]; then
+if [ "${1}" = 'init' ]; then
 
   # ELF bootimage backup
   rm -f "${BOOTIMAGE_ORIGINAL}";
   dd if="${BOOTIMAGE_PATH}" of="${BOOTIMAGE_ORIGINAL}";
+  cp "${BOOTIMAGE_PATH}" /tmp/boot_original.img
 
   # Template bootimage creation
   dd if=/dev/zero of="${BOOTIMAGE_PATH}";
@@ -66,9 +61,9 @@ if [ -z "${BRIDGE_CREATED}" ]; then
   # Bridge symlink creation
   ln -fs $(readlink -f ${BOOTIMAGE_PATH}) ${BOOTIMAGE_BRIDGE};
 
-  # Transfer to template bootimage
-  chmod 755 /tmp/boot_bridge/boot_bridge;
-  /tmp/boot_bridge/boot_bridge --import="${BOOTIMAGE_ORIGINAL}" --export="${BOOTIMAGE_PATH}";
+  # Transfer ramdisk to template bootimage
+  /tmp/boot_bridge/bbootimg -xr "${BOOTIMAGE_ORIGINAL}" ramdisk_original
+  /tmp/boot_bridge/bbootimg -u "${BOOTIMAGE_PATH}" -r ramdisk_original
   RESULT=${?};
 
   # Cleanup failures
@@ -81,20 +76,22 @@ if [ -z "${BRIDGE_CREATED}" ]; then
 
 # Bridge restore
 else
-
-  # Transfer to ELF bootimage
-  if [ ! "${1}" = 'failed' ]; then
-    chmod 755 /tmp/boot_bridge/boot_bridge;
-    /tmp/boot_bridge/boot_bridge --import="${BOOTIMAGE_PATH}" --export="${BOOTIMAGE_ORIGINAL}";
-    RESULT=${?};
-  fi;
+  # extract ramdisk from boot
+  /tmp/boot_bridge/bbootimg -xr "${BOOTIMAGE_PATH}" ramdisk_modified;
+  RESULT=${?};
 
   # ELF bootimage restore
   dd if=/dev/zero of="${BOOTIMAGE_PATH}";
   dd if="${BOOTIMAGE_ORIGINAL}" of="${BOOTIMAGE_PATH}";
+
+  # Transfer ramdisk back to boot image
+  if [ ${RESULT} -eq 0 ]; then
+    /tmp/boot_bridge/bbootimg -u "${BOOTIMAGE_PATH}" -r ramdisk_modified;
+    RESULT=${?};
+  fi;
+
   rm -f "${BOOTIMAGE_ORIGINAL}";
   rm -f "${BOOTIMAGE_BRIDGE}";
-
 fi;
 
 # Result output
